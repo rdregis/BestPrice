@@ -63,11 +63,13 @@ public class OrderBookApp
 
         OrderBookService orderBookService = new OrderBookService(orderBookRecord);
         var msg0 = string.Format("\tCurrent asset {0}: Index {1}", orderBookRecord.orderBookData.asset, orderBookRecord.idBestPrice);
+        Console.WriteLine(msg0);
+
         var msg1 = string.Format("\t\tMax: Price Asks = {0}, Bids = {1}", orderBookService.getMaxPrice("asks"), orderBookService.getMaxPrice("bids"));
         var msg2 = string.Format("\t\tMin: Price Asks = {0}, Bids = {1}", orderBookService.getMinPrice("asks"), orderBookService.getMinPrice("bids"));
         var msg3 = string.Format("\t\tAvg: Price Asks = {0}, Bids = {1}", orderBookService.getAvgPrice("asks"), orderBookService.getAvgPrice("bids"));
 
-        Console.WriteLine(msg0);
+    
         Console.WriteLine(msg1);
         Console.WriteLine(msg2);
         Console.WriteLine(msg3);

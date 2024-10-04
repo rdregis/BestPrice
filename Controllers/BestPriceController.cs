@@ -19,28 +19,28 @@ public class BestPriceController : ControllerBase
     }
 
     [HttpGet(Name = "GetBestPrice")]
-    public IEnumerable<BestPriceResult> Get()
+    public IEnumerable<BestPriceTrade> Get()
     {
-        List<BestPriceResult> bestPriceList =  new List<BestPriceResult>();
+        List<BestPriceTrade> bestPriceList =  new List<BestPriceTrade>();
 
 
-        BestPriceResult bestPriceItemBuy = new BestPriceResult();
+        BestPriceTrade bestPriceItemBuy = new BestPriceTrade();
         bestPriceItemBuy.Timestamp = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
         bestPriceItemBuy.Operation = "buy";
         bestPriceList.Add(bestPriceItemBuy);
         
-        BestPriceResult bestPriceItemSell = new BestPriceResult();
+        BestPriceTrade bestPriceItemSell = new BestPriceTrade();
         bestPriceItemSell.Id = 1;
         bestPriceItemSell.Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.Now.ToUnixTimeMilliseconds()).UtcDateTime.ToString();
         bestPriceItemSell.Operation = "sell";
         bestPriceList.Add(bestPriceItemSell);
 
-        return ((IEnumerable<BestPriceResult>)bestPriceList).ToArray();
+        return ((IEnumerable<BestPriceTrade>)bestPriceList).ToArray();
        
 
     }
      [HttpGet("{operation}/{asset}/{quantity}")]
-    public ActionResult<IEnumerable<BestPriceResult>> Get(string operation, string asset, double quantity)
+    public ActionResult<IEnumerable<BestPriceTrade>> Get(string operation, string asset, double quantity)
     {
 
         DBBestPrice dbBestPrice = new DBBestPrice("BestPrice.db");
@@ -55,7 +55,7 @@ public class BestPriceController : ControllerBase
         OrderBookService orderBookService = new OrderBookService(orderBookRecord);
 
 
-       List<BestPriceResult> bestPriceList =  new List<BestPriceResult>();
+       List<BestPriceTrade> bestPriceList =  new List<BestPriceTrade>();
 
         switch (operation) {
             case "buy":
@@ -68,7 +68,7 @@ public class BestPriceController : ControllerBase
                 return (StatusCode(500, "Invalid operation. Use 'sell' or 'buy'"));
         }
         
-        return ((IEnumerable<BestPriceResult>)bestPriceList).ToArray();
+        return ((IEnumerable<BestPriceTrade>)bestPriceList).ToArray();
        }
 
    

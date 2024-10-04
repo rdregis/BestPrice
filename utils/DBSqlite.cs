@@ -16,7 +16,7 @@ public class DBSqlite
         string connectionString = new SqliteConnectionStringBuilder()
         {
             DataSource = dbName,
-            Cache = SqliteCacheMode.Shared,
+            Cache = SqliteCacheMode.Private,
             Mode = SqliteOpenMode.ReadWriteCreate,
 
             DefaultTimeout = 10
@@ -37,7 +37,7 @@ public class DBSqlite
     public void dbDisconnection()
     {
         try {
-            this.sqliteConnection.Open();
+            this.sqliteConnection.Close();
         }
         catch (Exception ex) {
             throw new Exception("Error on Disconnection", ex);
@@ -65,14 +65,14 @@ public class DBSqlite
 
     public SqliteTransaction createTransaction() 
     {
-        var transaction = sqliteConnection.BeginTransaction();
+        var transaction = sqliteConnection.BeginTransaction(deferred: true);
         
         return transaction;
     }
 
     public String getField(SqliteDataReader reader, string fieldName)
     {
-        return (reader[fieldName]!.ToString());
+        return (reader[fieldName]!.ToString()!);
 
     }
     private SqliteConnection sqliteConnection = null!;

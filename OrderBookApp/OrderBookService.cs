@@ -77,44 +77,35 @@ public class OrderBookService
         }
     }
 
-    public BestPriceResult makeBuy(double quantity) 
+    public BestPriceTrade makeBuy(double quantity) 
     {
         List<BookItem> bookList = orderBookRecord.orderBookData.bookAsksItems.OrderBy(o=>o.price).ToList();
-        BestPriceResult bestPriceResult = makeOperation(quantity, bookList);
+        BestPriceTrade bestPriceTrade = makeOperation(quantity, bookList);
 
         
-        bestPriceResult.Id = orderBookRecord.idBestPrice;
-        long timestamp = long.Parse(orderBookRecord.orderBookData.timestamp);
-        bestPriceResult.Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime.ToString();
-       
-        bestPriceResult.Operation = "buy";
-        bestPriceResult.Asset = orderBookRecord.orderBookData.asset;
+         makePosOperation(bestPriceTrade, "buy");
 
-        return (bestPriceResult);
+
+        return (bestPriceTrade);
         
     }
 
     
-public BestPriceResult makeSell(double quantity) 
+public BestPriceTrade makeSell(double quantity) 
     {
 
         List<BookItem> bookList = orderBookRecord.orderBookData.bookBidsItems.OrderByDescending(o=>o.price).ToList();
-        BestPriceResult bestPriceResult = makeOperation(quantity, bookList);
+        BestPriceTrade bestPriceTrade = makeOperation(quantity, bookList);
 
+        makePosOperation(bestPriceTrade, "sell");
 
-        bestPriceResult.Id = orderBookRecord.idBestPrice;
-        long timestamp = long.Parse(orderBookRecord.orderBookData.microtimestamp);
-        bestPriceResult.Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime.ToString();
-        bestPriceResult.Operation = "sell";
-        bestPriceResult.Asset = orderBookRecord.orderBookData.asset;
-
-        return (bestPriceResult);
+        return (bestPriceTrade);
 
     }
 
-    private BestPriceResult makeOperation(double quantity, List<BookItem>bookList)
+    private BestPriceTrade makeOperation(double quantity, List<BookItem>bookList)
     {
-        BestPriceResult bestPriceResult = new BestPriceResult();
+        BestPriceTrade bestPriceTrade = new BestPriceTrade();
         int sumItems = 0;
         double sumPrice = 0;
         double sumQuantity = 0;
@@ -124,25 +115,38 @@ public BestPriceResult makeSell(double quantity)
              if (sumQuantity + item.quantity > quantity) {
                 break;
             }
-            bestPriceResult.BookItems.Add(item);
+            bestPriceTrade.BookItems.Add(item);
             sumQuantity += item.quantity;
             sumPrice += item.price;
             ++sumItems;
         }
 
-        if (bestPriceResult.BookItems.Count == 1) {
-            bestPriceResult.BookItems.Clear();
+        if (bestPriceTrade.BookItems.Count == 1) {
+            bestPriceTrade.BookItems.Clear();
         }
 
-        bestPriceResult.Items = sumItems;
-        bestPriceResult.Price = sumPrice;
-        bestPriceResult.Quantity = sumQuantity;
+        bestPriceTrade.Items = sumItems;
+        bestPriceTrade.Price = sumPrice;
+        bestPriceTrade.Quantity = sumQuantity;
 
-        return (bestPriceResult);
+        return (bestPriceTrade);
     }
-    // private string channel { get; set; }
-    // private JToken data {get; set;}
+    
+    private void makePosOperation(BestPriceTrade bestPriceTrade, string operation)
+    {
+        bestPriceTrade.Id = orderBookRecord.idBestPrice;
+        long timestamp = long.Parse(orderBookRecord.orderBookData.timestamp);
+        bestPriceTrade.Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime.ToString();
+        bestPriceTrade.Timestamp = orderBookRecord.orderBookData.timestamp;
+        bestPriceTrade.Operation = operation;
+        bestPriceTrade.Asset = orderBookRecord.orderBookData.asset;
 
+        DBBestPrice dbBestPrice = new DBBestPrice("BestPrice.db");
+
+        dbBestPrice.connect();
+        dbBestPrice.insertBestPriceTrade(bestPriceTrade);
+        dbBestPrice.disconnect(); 
+    }
     private OrderBookRecord orderBookRecord = null!;
     
 }

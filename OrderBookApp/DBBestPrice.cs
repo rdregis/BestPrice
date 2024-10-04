@@ -24,6 +24,7 @@ public class DBBestPrice {
                                         PRIMARY KEY (idBestPrice)
                                         )"
                                     );
+            
             dbSqlite.executeCommand(@"CREATE TABLE if not exists BestPriceAsks(
                                         idBestPrice INTEGER NOT NULL, 
                                         idAsks INTEGER, 
@@ -39,6 +40,25 @@ public class DBBestPrice {
                                         price REAL NOT NULL,
                                         quantity REAL NOT NULL,
                                         PRIMARY KEY (idBestPrice, idBids),
+                                        FOREIGN KEY (idBestPrice) REFERENCES BestPrice (idBestPrice)
+                                        )"
+                                    );
+            dbSqlite.executeCommand(@"CREATE TABLE if not exists BestPriceTrade(
+                                        idBestPrice INTEGER NOT NULL, 
+                                        timestamp Varchar(10) NOT NULL, 
+                                        operation Varchar(10) NOT NULL,
+                                        asset Varchar(10) NOT NULL,
+                                        price REAL NOT NULL,
+                                        quantity REAL NOT NULL,
+                                        PRIMARY KEY (idBestPrice)
+                                        )"
+                                    );
+            dbSqlite.executeCommand(@"CREATE TABLE if not exists BestPriceTradeItem(
+                                        idBestPrice INTEGER NOT NULL, 
+                                        idItem INTEGER, 
+                                        price REAL NOT NULL,
+                                        quantity REAL NOT NULL,
+                                        PRIMARY KEY (idBestPrice, idItem),
                                         FOREIGN KEY (idBestPrice) REFERENCES BestPrice (idBestPrice)
                                         )"
                                     );
@@ -61,6 +81,41 @@ public class DBBestPrice {
         this.dbSqlite!.dbDisconnection();
     }
 
+    public void insertBestPriceTrade(BestPriceTrade bestPriceTrade) 
+    {
+        var transaction = dbSqlite!.createTransaction();
+       
+        try {
+            var cmd = dbSqlite.createCommand(@"INSERT INTO BestPriceTrade( idBestPrice, timestamp, operation, asset, price, quantity) 
+                                                values ( @idBestPrice, @timestamp, @operation, @asset, @price, @quantity
+                                                )"
+                                            );
+            cmd.Parameters.AddWithValue("@idBestPrice", bestPriceTrade.Id);
+            cmd.Parameters.AddWithValue("@timestamp", bestPriceTrade.Timestamp);
+            cmd.Parameters.AddWithValue("@operation", bestPriceTrade.Operation);
+            cmd.Parameters.AddWithValue("@asset", bestPriceTrade.Asset);
+            cmd.Parameters.AddWithValue("@price", bestPriceTrade.Price);
+            cmd.Parameters.AddWithValue("@quantity", bestPriceTrade.Quantity);
+            cmd.ExecuteNonQuery();
+            foreach (var item in bestPriceTrade.BookItems.Select((value, index) => new { index, value })) {
+                cmd = dbSqlite.createCommand(@"INSERT INTO BestPriceTradeItem( idBestPrice, idItem, price, quantity) 
+                                                    values ( @idBestPrice, @idItem, @price, @quantity
+                                                    )"
+                                                );
+                cmd.Parameters.AddWithValue("@idBestPrice", bestPriceTrade.Id );
+                cmd.Parameters.AddWithValue("@idItem", item.index + 1);
+                cmd.Parameters.AddWithValue("@price", item.value.price);
+                cmd.Parameters.AddWithValue("@quantity", item.value.quantity);
+                cmd.ExecuteNonQuery();
+            };
+            transaction.Commit();
+        }
+        catch(Exception ex) {
+            transaction.Rollback();
+            Console.WriteLine("" + ex.Message);
+            System.Environment.Exit(1);
+        }
+    }
     public void insertBestPrice(OrderBookData orderBookData)
     {
         var transaction = dbSqlite!.createTransaction();
@@ -83,9 +138,20 @@ public class DBBestPrice {
             cmd.Parameters.AddWithValue("@idBestPrice", ++id );
             cmd.Parameters.AddWithValue("@timestamp", orderBookData.timestamp);
             cmd.Parameters.AddWithValue("@microtimestamp", orderBookData.microtimestamp);
-            long xxx = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             cmd.Parameters.AddWithValue("@creationTime", DateTimeOffset.Now.ToUnixTimeSeconds());
             cmd.ExecuteNonQuery();
+
+            foreach (var item in orderBookData.bookBidsItems.Select((value, index) => new { index, value })) {
+                cmd = dbSqlite.createCommand(@"INSERT INTO BestPriceBids( idBestPrice, idBids, price, quantity) 
+                                                    values ( @idBestPrice, @idBids, @price, @quantity
+                                                    )"
+                                                );
+                cmd.Parameters.AddWithValue("@idBestPrice", id );
+                cmd.Parameters.AddWithValue("@idBids", item.index + 1);
+                cmd.Parameters.AddWithValue("@price", item.value.price);
+                cmd.Parameters.AddWithValue("@quantity", item.value.quantity);
+                cmd.ExecuteNonQuery();
+            };
 
             foreach (var item in orderBookData.bookAsksItems.Select((value, index) => new { index, value })) {
                 cmd = dbSqlite.createCommand(@"INSERT INTO BestPriceAsks( idBestPrice, idAsks, price, quantity) 
@@ -98,17 +164,7 @@ public class DBBestPrice {
                 cmd.Parameters.AddWithValue("@quantity", item.value.quantity);
                 cmd.ExecuteNonQuery();
             };
-            foreach (var item in orderBookData.bookBidsItems.Select((value, index) => new { index, value })) {
-                cmd = dbSqlite.createCommand(@"INSERT INTO BestPriceBids( idBestPrice, idBids, price, quantity) 
-                                                    values ( @idBestPrice, @idBids, @price, @quantity
-                                                    )"
-                                                );
-                cmd.Parameters.AddWithValue("@idBestPrice", id );
-                cmd.Parameters.AddWithValue("@idBids", item.index + 1);
-                cmd.Parameters.AddWithValue("@price", item.value.price);
-                cmd.Parameters.AddWithValue("@quantity", item.value.quantity);
-                cmd.ExecuteNonQuery();
-            };
+            
             transaction.Commit();
             
         }
@@ -177,28 +233,29 @@ public class DBBestPrice {
         orderBookRecord.orderBookData.timestamp = reader["timestamp"].ToString()!;
         orderBookRecord.orderBookData.microtimestamp = reader["microtimestamp"].ToString()!;
 
-
-        var cmd = dbSqlite!.createCommand(@"Select * from BestPriceAsks WHERE idBestPrice = @idBestPrice");
-        cmd.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
-        using (var reader2 = cmd.ExecuteReader()) {
-            while (reader2.Read()) {
-                BookItem bookItem = new BookItem(
-                    double.Parse(reader2["price"].ToString()!),
-                    double.Parse(reader2["quantity"].ToString()!));
-                orderBookRecord.orderBookData.bookAsksItems.Add(bookItem);
-                          }
-        }
-
-        cmd = dbSqlite!.createCommand(@"Select * from BestPriceBids WHERE idBestPrice = @idBestPrice");
-        cmd.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
-        using (var reader2 = cmd.ExecuteReader()) {
+        var cmd2 = dbSqlite!.createCommand(@"Select * from BestPriceBids WHERE idBestPrice = @idBestPrice");
+        cmd2.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
+        using (var reader2 = cmd2.ExecuteReader()) {
             while (reader2.Read()) {
                 BookItem bookItem = new BookItem(
                     double.Parse(reader2["price"].ToString()!),
                     double.Parse(reader2["quantity"].ToString()!));
                 orderBookRecord.orderBookData.bookBidsItems.Add(bookItem);
-                          }
+            }
         }
+
+        var cmd1 = dbSqlite!.createCommand(@"Select * from BestPriceAsks WHERE idBestPrice = @idBestPrice");
+        cmd1.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
+        using (var reader1 = cmd1.ExecuteReader()) {
+            while (reader1.Read()) {
+                BookItem bookItem = new BookItem(
+                    double.Parse(reader1["price"].ToString()!),
+                    double.Parse(reader1["quantity"].ToString()!));
+                orderBookRecord.orderBookData.bookAsksItems.Add(bookItem);
+            }
+        }
+
+        
         
         return(orderBookRecord);
 

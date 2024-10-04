@@ -1,4 +1,4 @@
-public class BestPriceResult
+public class BestPriceTrade
 {
     public long Id { get; set; }
     public string Timestamp { get; set; } = string.Empty;
