@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using System.Globalization;
+using System.Linq.Expressions;
 
 
 public class DBBestPrice {
@@ -118,6 +119,8 @@ public class DBBestPrice {
     }
     public void insertBestPrice(OrderBookData orderBookData)
     {
+  
+        
         var transaction = dbSqlite!.createTransaction();
         try {
             var cmd = dbSqlite.createCommand(@"SELECT COUNT(*) as count FROM BestPrice"
@@ -173,6 +176,7 @@ public class DBBestPrice {
             Console.WriteLine("" + ex.Message);
             System.Environment.Exit(1);
         }
+
     }
 
     
@@ -226,36 +230,46 @@ public class DBBestPrice {
     private OrderBookRecord createOrderBookRecord(SqliteDataReader reader)
     {
 
+
         OrderBookRecord orderBookRecord = new OrderBookRecord();
 
-        orderBookRecord.idBestPrice = int.Parse(reader["idBestPrice"].ToString()!);
-        orderBookRecord.orderBookData.asset = reader["asset"].ToString()!;
-        orderBookRecord.orderBookData.timestamp = reader["timestamp"].ToString()!;
-        orderBookRecord.orderBookData.microtimestamp = reader["microtimestamp"].ToString()!;
+        try {
+            orderBookRecord.idBestPrice = int.Parse(reader["idBestPrice"].ToString()!);
+            orderBookRecord.orderBookData.asset = reader["asset"].ToString()!;
+            orderBookRecord.orderBookData.timestamp = reader["timestamp"].ToString()!;
+            orderBookRecord.orderBookData.microtimestamp = reader["microtimestamp"].ToString()!;
 
-        var cmd2 = dbSqlite!.createCommand(@"Select * from BestPriceBids WHERE idBestPrice = @idBestPrice");
-        cmd2.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
-        using (var reader2 = cmd2.ExecuteReader()) {
-            while (reader2.Read()) {
-                BookItem bookItem = new BookItem(
-                    double.Parse(reader2["price"].ToString()!),
-                    double.Parse(reader2["quantity"].ToString()!));
-                orderBookRecord.orderBookData.bookBidsItems.Add(bookItem);
+            while (orderBookRecord.orderBookData.bookBidsItems.Count == 0) {
+                var cmd2 = dbSqlite!.createCommand(@"Select * from BestPriceBids WHERE idBestPrice = @idBestPrice");
+                cmd2.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
+                using (var reader2 = cmd2.ExecuteReader()) {
+                    while (reader2.Read()) {
+                        BookItem bookItem = new BookItem(
+                            double.Parse(reader2["price"].ToString()!),
+                            double.Parse(reader2["quantity"].ToString()!));
+                        orderBookRecord.orderBookData.bookBidsItems.Add(bookItem);
+                    }
+                }
+            }
+
+            while (orderBookRecord.orderBookData.bookAsksItems.Count == 0) {
+                var cmd1 = dbSqlite!.createCommand(@"Select * from BestPriceAsks WHERE idBestPrice = @idBestPrice");
+                cmd1.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
+                using (var reader1 = cmd1.ExecuteReader()) {
+                    while (reader1.Read()) {
+                        BookItem bookItem = new BookItem(
+                            double.Parse(reader1["price"].ToString()!),
+                            double.Parse(reader1["quantity"].ToString()!));
+                        orderBookRecord.orderBookData.bookAsksItems.Add(bookItem);
+                    }
+                }
             }
         }
-
-        var cmd1 = dbSqlite!.createCommand(@"Select * from BestPriceAsks WHERE idBestPrice = @idBestPrice");
-        cmd1.Parameters.AddWithValue("@idBestPrice", orderBookRecord.idBestPrice );
-        using (var reader1 = cmd1.ExecuteReader()) {
-            while (reader1.Read()) {
-                BookItem bookItem = new BookItem(
-                    double.Parse(reader1["price"].ToString()!),
-                    double.Parse(reader1["quantity"].ToString()!));
-                orderBookRecord.orderBookData.bookAsksItems.Add(bookItem);
-            }
+        catch (Exception ex) {
+            Console.WriteLine(ex.Message);
         }
-
         
+
         
         return(orderBookRecord);
 
