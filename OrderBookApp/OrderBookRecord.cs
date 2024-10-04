@@ -1,3 +1,4 @@
+using System;
 public class OrderBookRecord 
 {
     public int idBestPrice;
@@ -7,7 +8,7 @@ public class OrderBookRecord
 
 public class AggregateBestPriceRecord
 {
-    public string asset;
+    public string asset = String.Empty;
     public double asksPrice;
     public double bidsPrice;
 

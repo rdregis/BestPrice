@@ -51,7 +51,7 @@ public class DBSqlite
             cmd.ExecuteNonQuery();
         }   
         catch(Exception ex) {
-            throw ex;
+            throw new Exception("DB Execution error:", ex);
         }
     }
 

@@ -45,7 +45,7 @@ class BitStampMng
             Console.WriteLine("Subscribe: " +data);
 
             try {           
-                this.wsClient.Send(data);
+                this.wsClient!.Send(data);
             }
             catch (Exception ex) {
                 Console.WriteLine("ERROR: " + ex.ToString());
@@ -58,7 +58,7 @@ class BitStampMng
         {
             try {
              var exitEvent = new ManualResetEvent(false);
-             this.wsClient.MessageReceived.Subscribe(handleMessage);
+             this.wsClient!.MessageReceived.Subscribe(handleMessage);
         
             this.wsClient.Start();
             exitEvent.WaitOne();
