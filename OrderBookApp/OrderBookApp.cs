@@ -44,43 +44,15 @@ public class OrderBookApp
 
         
     }
-    public Func<OrderBookRecord, bool> handleTimeRecord =  (OrderBookRecord orderBookRecord) => 
+    public Func<AggregateBestPriceRecord, bool> handleAggregateRecord =  (AggregateBestPriceRecord aggregateBestPriceRecord) => 
     {
-        Console.WriteLine(@$"TimeRecord {orderBookRecord.idBestPrice}: {orderBookRecord.orderBookData.asset}: 
-                                        {orderBookRecord.orderBookData.timestamp}: {orderBookRecord.orderBookData.microtimestamp}");
-        
-        OrderBookService orderBookService = new OrderBookService(orderBookRecord);
-       
-        foreach (var item in this.dictRecord) {
-            if (item.Key != orderBookRecord.orderBookData.asset) {
-                continue;
-            }
-            Dictionary<string, List<double>> dictType = item.Value;
-            foreach (var itemType in dictType) { 
-                if (itemType.Key == "bids") {
-                    itemType.Value.Add(orderBookService.getAvgPrice("bids"));
-                }
-                else {
-                    itemType.Value.Add(orderBookService.getAvgPrice("asks"));
-                }
-            }
-        }
+        var msg1 = string.Format("\tTime average {0}: Price Asks = {1}, Bids = {2}", 
+                aggregateBestPriceRecord.asset, aggregateBestPriceRecord.asksPrice, aggregateBestPriceRecord.bidsPrice);
+        var msg2 = string.Format("\t             Quantity Asks = {0}, Bids = {1}", 
+                 aggregateBestPriceRecord.asksQuantity, aggregateBestPriceRecord.bidsQuantity);
+        Console.WriteLine(msg1);
+        Console.WriteLine(msg2);
 
-        // Dictionary<string, List<double>> dictType = new Dictionary<string, List<double>>();
-
-        // List<double> asksItems = new List<double>();
-        // asksItems.Add(orderBookService.getAvgPrice("asks"));
-        // dictType.Add("asks", asksItems);
-
-
-        // List<double> bidsItems = new List<double>();
-        // bidsItems.Add(orderBookService.getAvgPrice("bids"));
-        // dictType.Add("bids", bidsItems);
-
-
-        // dictRecord.Add(orderBookRecord.orderBookData.asset, dictType);
-        
-        
         return true;
     };
     private void OnTimedEvent(Object source, System.Timers.ElapsedEventArgs e)
@@ -90,19 +62,30 @@ public class OrderBookApp
         OrderBookRecord orderBookRecord = this.dbBestPrice.selectBestPrice(@"SELECT * FROM BestPrice ORDER BY idBestPrice DESC LIMIT 1");
 
         OrderBookService orderBookService = new OrderBookService(orderBookRecord);
-        Console.WriteLine("\tMax bids price: " + orderBookService.getMaxPrice("bids"));
-        Console.WriteLine("\tMin bids price: " + orderBookService.getMinPrice("bids"));
-        Console.WriteLine("\tAvg bids price: " + orderBookService.getAvgPrice("bids"));
-        Console.WriteLine("\tMax asks price: " + orderBookService.getMaxPrice("asks"));
-        Console.WriteLine("\tMin asks price: " + orderBookService.getMinPrice("asks"));
-        Console.WriteLine("\tAvg asks price: " + orderBookService.getAvgPrice("asks"));
+        var msg0 = string.Format("\tCurrent asset {0}: Index {1}", orderBookRecord.orderBookData.asset, orderBookRecord.idBestPrice);
+        var msg1 = string.Format("\t\tMax: Price Asks = {0}, Bids = {1}", orderBookService.getMaxPrice("asks"), orderBookService.getMaxPrice("bids"));
+        var msg2 = string.Format("\t\tMin: Price Asks = {0}, Bids = {1}", orderBookService.getMinPrice("asks"), orderBookService.getMinPrice("bids"));
+        var msg3 = string.Format("\t\tAvg: Price Asks = {0}, Bids = {1}", orderBookService.getAvgPrice("asks"), orderBookService.getAvgPrice("bids"));
+
+        Console.WriteLine(msg0);
+        Console.WriteLine(msg1);
+        Console.WriteLine(msg2);
+        Console.WriteLine(msg3);
 
         double interval = ((System.Timers.Timer)source).Interval / 1000;
         
-        this.dbBestPrice.selectBestPrice(handleTimeRecord, @$"
-                        SELECT * from BestPrice 
-                        where  datetime(creationTime,'auto') <= datetime('now')
-                        and datetime(creationTime,'auto') >  datetime('now','-{interval} second')"
+        this.dbBestPrice.agregateBestPrice(handleAggregateRecord, @$"
+                        SELECT  T.asset, avg(A.price) AS asksPrice, avg(b.price) AS bidsPrice, 
+                                avg(A.quantity) AS asksQuantity, avg(b.quantity) AS bidsQuantity 
+                            FROM BestPrice T
+                            JOIN BestPriceAsks A, BestPriceBids B
+                            WHERE 
+                                T.idBestPrice = A.idBestPrice 
+                                AND T.idBestPrice = B.idBestPrice
+                                AND datetime(creationTime,'auto') <= datetime('now')
+                                AND datetime(creationTime,'auto') >  datetime('now','-{interval} second')
+                            GROUP by T.asset
+                        "
                         );
     }
 

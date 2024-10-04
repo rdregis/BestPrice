@@ -25,7 +25,7 @@ public class BestPriceController : ControllerBase
 
 
         BestPriceResult bestPriceItemBuy = new BestPriceResult();
-        bestPriceItemBuy.Timestamp = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss.ffffff");
+        bestPriceItemBuy.Timestamp = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
         bestPriceItemBuy.Operation = "buy";
         bestPriceList.Add(bestPriceItemBuy);
         

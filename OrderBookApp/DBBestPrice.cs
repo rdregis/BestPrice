@@ -144,6 +144,29 @@ public class DBBestPrice {
             }
         }
     }
+    public void agregateBestPrice(Func<AggregateBestPriceRecord, bool> handleAgregateRecord, string select)
+    {
+        var cmd = dbSqlite!.createCommand(select);
+        using (var reader = cmd.ExecuteReader()) {
+            while (reader.Read()) {
+               handleAgregateRecord(createAgregateRecord(reader));
+            }
+        }
+    }
+    private AggregateBestPriceRecord createAgregateRecord(SqliteDataReader reader)
+    {
+         AggregateBestPriceRecord aggregateBestPriceRecord = new AggregateBestPriceRecord();
+
+         aggregateBestPriceRecord.asset =  reader["asset"].ToString()!;
+         aggregateBestPriceRecord.asksPrice =  double.Parse(reader["asksPrice"].ToString()!);
+         aggregateBestPriceRecord.bidsPrice =  double.Parse(reader["bidsPrice"].ToString()!);
+         aggregateBestPriceRecord.asksQuantity =  double.Parse(reader["asksQuantity"].ToString()!);
+         aggregateBestPriceRecord.bidsQuantity =  double.Parse(reader["bidsQuantity"].ToString()!);
+
+         return(aggregateBestPriceRecord);
+
+
+    }
     private OrderBookRecord createOrderBookRecord(SqliteDataReader reader)
     {
 
