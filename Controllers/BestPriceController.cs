@@ -71,5 +71,44 @@ public class BestPriceController : ControllerBase
         return ((IEnumerable<BestPriceTrade>)bestPriceList).ToArray();
        }
 
+    // [HttpPost]
+    // public void Post([FromBody] string value)
+    // { 
+    //     Console.WriteLine(value);
+    // }
+    [HttpPost]
+    // [ProducesResponseType(StatusCodes.Status201Created)]
+    // [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult<BestPriceTrade> Create(string operation, string asset, double quantity)
+    {
+       DBBestPrice dbBestPrice = new DBBestPrice("BestPrice.db");
+        dbBestPrice.connect();      
+        OrderBookRecord orderBookRecord = 
+                dbBestPrice.selectBestPrice(@"SELECT * FROM BestPrice WHERE asset = @asset ORDER BY idBestPrice DESC LIMIT 1", asset);
+
+        if (orderBookRecord == null) {
+            return (StatusCode(500, $"No Data to execute {operation} on asset: {asset} "));
+        }
+
+        OrderBookService orderBookService = new OrderBookService(orderBookRecord);
+
+
+        BestPriceTrade bestPriceTrade = new BestPriceTrade();
+
+       
+
+        switch (operation) {
+            case "buy":
+                bestPriceTrade = orderBookService.makeBuy(quantity);
+                break;
+            case "sell":
+                bestPriceTrade = orderBookService.makeSell(quantity);
+                break;
+            default:
+                return (StatusCode(500, "Invalid operation. Use 'sell' or 'buy'"));
+        }
+        
+        return CreatedAtAction(nameof(Create), new {  }, bestPriceTrade);
+    }
    
 }

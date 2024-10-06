@@ -57,11 +57,11 @@ class BitStampMng
         public void start(Action<ResponseMessage> handleMessage )
         {
             try {
-             var exitEvent = new ManualResetEvent(false);
-             this.wsClient!.MessageReceived.Subscribe(handleMessage);
-        
-            this.wsClient.Start();
-            exitEvent.WaitOne();
+                var exitEvent = new ManualResetEvent(false);
+                this.wsClient!.MessageReceived.Subscribe(handleMessage);
+
+                this.wsClient.Start();
+                exitEvent.WaitOne();
             }
             catch (Exception ex) {
                 Console.WriteLine("ERROR: " + ex.ToString());

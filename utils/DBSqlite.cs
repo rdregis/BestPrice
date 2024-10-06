@@ -65,9 +65,16 @@ public class DBSqlite
 
     public SqliteTransaction createTransaction() 
     {
-        var transaction = sqliteConnection.BeginTransaction(deferred: true);
+        try {
+            var transaction = sqliteConnection.BeginTransaction();
+            return transaction;
+        }
+        catch(Exception ex) {
+            Console.WriteLine("ERROR: " + ex.ToString());
+            System.Environment.Exit(1);
+        }
+        return null;
         
-        return transaction;
     }
 
     public String getField(SqliteDataReader reader, string fieldName)
