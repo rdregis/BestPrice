@@ -1,2 +1,9 @@
 {
+    "dotnet-test-explorer.testProjectPath": "BestPriceTestNUnit/*" ,
+    "files.exclude": {
+        "**/.vs/": true,
+        "**/*.DotSettings": true,
+        
+        "**/TestResults/": true
+    }
 }

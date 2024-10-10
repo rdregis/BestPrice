@@ -33,7 +33,7 @@ public class OrderBookService
             case "asks":
                 return (this.orderBookRecord.orderBookData.bookAsksItems.Max(t => t.price));
             case "bids":
-                return (this.orderBookRecord.orderBookData.bookBidsItems.Max(t => t.price));
+                    return (this.orderBookRecord.orderBookData.bookBidsItems.Max(t => t.price));
             default:
                 return (0);
         }
